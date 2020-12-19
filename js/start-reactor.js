@@ -1,3 +1,9 @@
+Array.prototype.fillWith = function(f) {
+    for(let i = 0; i <= this.length - 1; i++)
+        this[i] = f(i)    
+    return this
+}
+
 startReactor = {
 	computerCombination: [],
 	playerCombination: [],
@@ -9,7 +15,7 @@ startReactor = {
 		start: 'start.mp3',
 		fail: 'fail.mp3',
 		complete: 'complete.mp3',
-		combinations: ['0.mp3', '1.mp3', '2.mp3', '3.mp3', '4.mp3', '5.mp3', '6.mp3', '7.mp3', '8.mp3'],
+		combinations: new Array(9).fillWith(index => index),
 
 		loadAudio(filename) {
 			const file = `./audio/${filename}?&cb=${new Date().getTime()}`
@@ -27,7 +33,7 @@ startReactor = {
 			this.complete = this.loadAudio(this.complete)
 			this.fail = this.loadAudio(this.fail)
 			
-			this.combinations = this.combinations.map(file => this.loadAudio(file))
+			this.combinations = this.combinations.map((filename) => this.loadAudio(`${filename}.mp3`))
 		},
 
 	},
@@ -44,11 +50,11 @@ startReactor = {
 		},
 
         turnAllLedsOff() {
-            Array.prototype.forEach.call(this.playerLedPanel.children, led => {
-                led.classList.remove('ledOn')
-            })
+            const computerLeds = Array.prototype.flat.call(this.computerLedPanel.children)
+            const playerLeds = Array.prototype.flat.call(this.playerLedPanel.children)
+            const leds = computerLeds.concat(playerLeds)
 
-            Array.prototype.forEach.call(this.computerLedPanel.children, led => {
+            leds.forEach(led => {
                 led.classList.remove('ledOn')
             })
         },
@@ -137,7 +143,7 @@ startReactor = {
             const playerMemory = this.interface.playerMemory
             const memory = this.interface.playerMemoryButtons
 
-            Array.prototype.forEach.call(memory, button => {
+            Array.from(memory).forEach(button => {
                 button.addEventListener('click', () => {
                     if(playerMemory.classList.contains('playerActive')) {
                         this.play(parseInt(button.dataset.memory))
@@ -165,11 +171,12 @@ startReactor = {
 	},
 
 	createCombination() {
-		return new Array(this.memoryMaxCombination).fill().map(() => (Math.floor(Math.random() * this.memoryMaxCombination) + 1) - 1)
+		return new Array(this.memoryMaxCombination).fillWith(() => (Math.floor(Math.random() * this.memoryMaxCombination) + 1) - 1)
 	},
 
     play(index) {
         this.interface.playItem(index, this.playerCombination.length, 'player')
+        console.log(this.playerCombination.length)
         this.playerCombination.push(index)
 
         if(this.isTheRightCombination(this.playerCombination.length)) {
@@ -191,11 +198,13 @@ startReactor = {
             }
         } else {
             this.interface.endGame()
+            
             document.getElementById('title').textContent = 'Você é o impostor'
 
             setTimeout(() => {
                 document.getElementById('title').textContent = 'START REACTOR'
-            }, 1200)
+                this.start()
+            }, 1400)
         }
 
         
@@ -205,11 +214,12 @@ startReactor = {
         this.playerCombination = [];
         this.interface.disableButtons()
         this.interface.turnAllLedsOff()
-        for(let i = 0; i <= this.computerCombinationPosition - 1; i++) {
+
+        this.computerCombination.slice(0, this.computerCombinationPosition).forEach((combination, position) => {
             setTimeout(() => {
-                this.interface.playItem(this.computerCombination[i], i)
-            }, 400 * (i + 1))
-        }
+                this.interface.playItem(combination, position)
+            }, 400 * (position + 1))
+        })
 
         setTimeout(() => {
             this.interface.turnAllLedsOff()
